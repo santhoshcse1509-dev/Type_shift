@@ -11,3 +11,5 @@ pymupdf
 fpdf2
 pdfplumber
 python-docx
+python-jose[cryptography]
+passlib[bcrypt]
