@@ -7,7 +7,8 @@ export const Header: React.FC = () => {
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:8000/', { method: 'GET' });
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+        const res = await fetch(`${apiUrl}/`, { method: 'GET' });
         setIsOnline(res.ok);
       } catch {
         setIsOnline(false);
