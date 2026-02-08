@@ -11,6 +11,8 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
 # Standard Conversion Libraries (No AI/ML)
 from pdf2docx import Converter as PDFConverter
@@ -27,6 +29,7 @@ from docx import Document
 SECRET_KEY = "your-secret-key-keep-it-secret" # In production, use environment variable
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID" # Instructions to user to replace this
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -131,6 +134,38 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 @app.get("/users/me", response_model=User)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+class GoogleToken(BaseModel):
+    token: str
+
+@app.post("/auth/google")
+async def google_login(token_data: GoogleToken):
+    try:
+        # Verify the Google token
+        idinfo = id_token.verify_oauth2_token(token_data.token, requests.Request(), GOOGLE_CLIENT_ID)
+        
+        # If valid, get or create user
+        email = idinfo['email']
+        username = email.split('@')[0]
+        
+        if username not in users_db:
+            # Create a mock user
+            users_db[username] = {
+                "username": username,
+                "email": email,
+                "hashed_password": "google_managed", # No password login for google users
+                "disabled": False
+            }
+        
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": username}, expires_delta=access_token_expires
+        )
+        return {"access_token": access_token, "token_type": "bearer", "user": users_db[username]}
+        
+    except ValueError:
+        # Invalid token
+        raise HTTPException(status_code=401, detail="Invalid Google token")
 
 @app.get("/")
 async def root():

@@ -13,3 +13,4 @@ pdfplumber
 python-docx
 python-jose[cryptography]
 passlib[bcrypt]
+google-auth

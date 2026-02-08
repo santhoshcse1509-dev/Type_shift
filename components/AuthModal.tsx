@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Lock, Mail, X, LogIn, UserPlus, LogOut, CheckCircle } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,6 +17,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   const [error, setError] = useState<string | null>(null);
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${apiUrl}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: credentialResponse.credential }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Google Login failed');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('token', data.access_token);
+      onSuccess(data.user);
+      onClose();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,10 +186,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             </button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 flex flex-col items-center gap-4">
+            <div className="relative w-full flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-100"></span></div>
+              <span className="relative bg-white px-4 text-xs font-bold text-gray-300 uppercase tracking-widest">or continue with</span>
+            </div>
+
+            <div className="w-full flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError('Google Login Failed')}
+                useOneTap
+                theme="outline"
+                shape="pill"
+                size="large"
+                text="continue_with"
+                width="100%"
+              />
+            </div>
+
             <button 
               onClick={() => setIsLogin(!isLogin)}
-              className="text-gray-500 font-bold hover:text-indigo-600 transition-colors"
+              className="text-gray-500 font-bold hover:text-indigo-600 transition-colors mt-2"
             >
               {isLogin ? "Don't have an account? Sign up" : "Already have an account? Log in"}
             </button>
