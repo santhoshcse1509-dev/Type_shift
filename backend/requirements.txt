@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-multipart
+pdf2docx
+docx2pdf
+pandas
+openpyxl
+img2pdf
+Pillow
+pymupdf
+fpdf2
+pdfplumber
+python-docx
